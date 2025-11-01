@@ -1,0 +1,9 @@
+[
+    {
+        "name": "Dog",
+        "description": "Shenanigans",
+        "category": "Eat",
+        "price": 1000.0,
+        "id": 0
+    }
+]

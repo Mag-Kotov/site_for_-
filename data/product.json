@@ -1,1 +1,9 @@
-[]
+[
+    {
+        "Name": "Test",
+        "Description": "Test",
+        "Category": "Test",
+        "Price": 100.0,
+        "Id": 0
+    }
+]

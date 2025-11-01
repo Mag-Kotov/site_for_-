@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -10,16 +11,17 @@ from telegram.ext import (
     filters
 )
 
-# Путь к файлу с товарами
-PATH = r"C:\Users\Andrey_Novikov\Desktop\site\data\product.json"
+# ------------------- Путь к репозиторию и JSON -------------------
+REPO_PATH = r"C:\Users\Andrey_Novikov\Desktop\site"
+JSON_PATH = os.path.join(REPO_PATH, "data", "product.json")
 
-# Состояния для диалога добавления
+# ------------------- Состояния для диалога добавления -------------------
 NAME, DESCRIPTION, CATEGORY, PRICE = range(4)
 
 # ------------------- Работа с JSON -------------------
 def load_products():
-    if os.path.exists(PATH) and os.path.getsize(PATH) > 0:
-        with open(PATH, "r", encoding="utf-8") as f:
+    if os.path.exists(JSON_PATH) and os.path.getsize(JSON_PATH) > 0:
+        with open(JSON_PATH, "r", encoding="utf-8") as f:
             try:
                 return json.load(f)
             except json.JSONDecodeError:
@@ -27,13 +29,24 @@ def load_products():
     return []
 
 def save_products(products):
-    with open(PATH, "w", encoding="utf-8") as f:
+    with open(JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(products, f, ensure_ascii=False, indent=4)
 
 def next_id(products):
     if not products:
         return 0
     return max(p['Id'] for p in products) + 1
+
+# ------------------- Функция автоматического пуша -------------------
+def git_push(commit_message="auto update"):
+    try:
+        os.chdir(REPO_PATH)
+        subprocess.run(["git", "add", "."], check=True)
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+        subprocess.run(["git", "push"], check=True)
+        print("✅ Изменения успешно запушены на GitHub.")
+    except subprocess.CalledProcessError as e:
+        print("⚠️ Ошибка при git push:", e)
 
 # ------------------- Команды -------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -81,6 +94,9 @@ async def add_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_product['Id'] = next_id(products)
     products.append(new_product)
     save_products(products)
+
+    # Автоматический пуш после добавления
+    git_push(f"Добавлен товар: {new_product['Name']} (ID {new_product['Id']})")
 
     await update.message.reply_text(f"Товар '{new_product['Name']}' добавлен с ID {new_product['Id']}")
     return ConversationHandler.END
@@ -138,13 +154,17 @@ async def delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if product:
         products.remove(product)
         save_products(products)
+
+        # Автоматический пуш после удаления
+        git_push(f"Удалён товар ID {id_delete}")
+
         await update.message.reply_text(f"Товар ID {id_delete} удалён.")
     else:
         await update.message.reply_text(f"Товар с ID {id_delete} не найден.")
 
 # ------------------- Основной запуск -------------------
 if __name__ == "__main__":
-    TOKEN = "7762237069:AAFw853pE03NFpwMQjOw9VH0DBOqtlYjP8E"
+    TOKEN = "7762237069:AAFw853pE03NFpwMQjOw9VH0DBOqtlYjP8E"  # замените на свой токен
     app = ApplicationBuilder().token(TOKEN).build()
 
     add_conv = ConversationHandler(

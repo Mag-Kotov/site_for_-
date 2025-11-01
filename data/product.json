@@ -5,5 +5,12 @@
         "Category": "Test",
         "Price": 100.0,
         "Id": 0
+    },
+    {
+        "Name": "Gg",
+        "Description": "Gg",
+        "Category": "Gg",
+        "Price": 8273636.0,
+        "Id": 1
     }
 ]

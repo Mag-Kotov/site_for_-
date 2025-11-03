@@ -12,5 +12,13 @@
         "Category": "Gg",
         "Price": 8273636.0,
         "Id": 1
+    },
+    {
+        "Name": "Image",
+        "Description": "Image",
+        "Category": "Image",
+        "Price": 2000.0,
+        "Id": 2,
+        "Image": "data\\images\\2.jpg"
     }
 ]

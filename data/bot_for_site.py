@@ -11,12 +11,15 @@ from telegram.ext import (
     filters
 )
 
-# ------------------- Путь к репозиторию и JSON -------------------
+# ------------------- Пути -------------------
 REPO_PATH = r"C:\Users\Andrey_Novikov\Desktop\site"
 JSON_PATH = os.path.join(REPO_PATH, "data", "product.json")
+IMAGES_PATH = os.path.join(REPO_PATH, "data", "images")  # 🆕 Папка для изображений
 
-# ------------------- Состояния для диалога добавления -------------------
-NAME, DESCRIPTION, CATEGORY, PRICE = range(4)
+os.makedirs(IMAGES_PATH, exist_ok=True)  # 🆕 Создаём папку, если её нет
+
+# ------------------- Состояния -------------------
+NAME, DESCRIPTION, CATEGORY, PRICE, PHOTO = range(5)  # 🆕 добавлено состояние PHOTO
 
 # ------------------- Работа с JSON -------------------
 def load_products():
@@ -37,7 +40,7 @@ def next_id(products):
         return 0
     return max(p['Id'] for p in products) + 1
 
-# ------------------- Функция автоматического пуша -------------------
+# ------------------- Git push -------------------
 def git_push(commit_message="auto update"):
     try:
         os.chdir(REPO_PATH)
@@ -88,38 +91,63 @@ async def add_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return PRICE
 
     context.user_data['product']['Price'] = price
+    await update.message.reply_text("Отправьте фото товара или напишите 'нет', если без фото:")  # 🆕
+    return PHOTO  # 🆕
 
+# ------------------- Фото товара -------------------
+async def add_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):  # 🆕
+    product = context.user_data['product']
     products = load_products()
-    new_product = context.user_data['product']
-    new_product['Id'] = next_id(products)
-    products.append(new_product)
+    product['Id'] = next_id(products)
+
+    if update.message.photo:  # Если пользователь прислал фото
+        photo = update.message.photo[-1]
+        file = await photo.get_file()
+        image_path = os.path.join(IMAGES_PATH, f"{product['Id']}.jpg")
+        await file.download_to_drive(image_path)
+        product['Image'] = os.path.relpath(image_path, REPO_PATH)
+    else:
+        product['Image'] = None
+
+    products.append(product)
     save_products(products)
+    git_push(f"Добавлен товар: {product['Name']} (ID {product['Id']})")
 
-    # Автоматический пуш после добавления
-    git_push(f"Добавлен товар: {new_product['Name']} (ID {new_product['Id']})")
-
-    await update.message.reply_text(f"Товар '{new_product['Name']}' добавлен с ID {new_product['Id']}")
+    await update.message.reply_text(f"✅ Товар '{product['Name']}' добавлен с ID {product['Id']}")
     return ConversationHandler.END
 
-# ------------------- Просмотр всех товаров -------------------
+async def skip_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):  # 🆕
+    product = context.user_data['product']
+    products = load_products()
+    product['Id'] = next_id(products)
+    product['Image'] = None
+    products.append(product)
+    save_products(products)
+    git_push(f"Добавлен товар: {product['Name']} (ID {product['Id']})")
+    await update.message.reply_text(f"✅ Товар '{product['Name']}' добавлен без фото (ID {product['Id']})")
+    return ConversationHandler.END
+
+# ------------------- Список -------------------
 async def list_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
     products = load_products()
     if not products:
         await update.message.reply_text("Список товаров пуст.")
         return
 
-    text = ""
     for p in products:
-        text += (
+        text = (
             f"ID: {p['Id']}\n"
             f"Имя: {p['Name']}\n"
             f"Описание: {p['Description']}\n"
             f"Категория: {p['Category']}\n"
-            f"Цена: {p['Price']} Руб\n\n"
+            f"Цена: {p['Price']} Руб\n"
         )
-    await update.message.reply_text(text)
+        if p.get('Image'):
+            await update.message.reply_photo(photo=open(os.path.join(REPO_PATH, p['Image']), 'rb'), caption=text)
+        else:
+            await update.message.reply_text(text)
 
-# ------------------- Поиск по ID -------------------
+# ------------------- Поиск -------------------
 async def find_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         id_search = int(context.args[0])
@@ -129,17 +157,21 @@ async def find_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     products = load_products()
     product = next((p for p in products if p['Id'] == id_search), None)
-    if product:
-        text = (
-            f"ID: {product['Id']}\n"
-            f"Имя: {product['Name']}\n"
-            f"Описание: {product['Description']}\n"
-            f"Категория: {product['Category']}\n"
-            f"Цена: {product['Price']} Руб"
-        )
-        await update.message.reply_text(text)
-    else:
+    if not product:
         await update.message.reply_text(f"Товар с ID {id_search} не найден.")
+        return
+
+    text = (
+        f"ID: {product['Id']}\n"
+        f"Имя: {product['Name']}\n"
+        f"Описание: {product['Description']}\n"
+        f"Категория: {product['Category']}\n"
+        f"Цена: {product['Price']} Руб"
+    )
+    if product.get('Image'):
+        await update.message.reply_photo(photo=open(os.path.join(REPO_PATH, product['Image']), 'rb'), caption=text)
+    else:
+        await update.message.reply_text(text)
 
 # ------------------- Удаление -------------------
 async def delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -152,19 +184,22 @@ async def delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     products = load_products()
     product = next((p for p in products if p['Id'] == id_delete), None)
     if product:
+        if product.get('Image'):
+            try:
+                os.remove(os.path.join(REPO_PATH, product['Image']))
+            except FileNotFoundError:
+                pass
+
         products.remove(product)
         save_products(products)
-
-        # Автоматический пуш после удаления
         git_push(f"Удалён товар ID {id_delete}")
-
-        await update.message.reply_text(f"Товар ID {id_delete} удалён.")
+        await update.message.reply_text(f"🗑 Товар ID {id_delete} удалён.")
     else:
         await update.message.reply_text(f"Товар с ID {id_delete} не найден.")
 
-# ------------------- Основной запуск -------------------
+# ------------------- Запуск -------------------
 if __name__ == "__main__":
-    TOKEN = "7762237069:AAFw853pE03NFpwMQjOw9VH0DBOqtlYjP8E"  # замените на свой токен
+    TOKEN = "7762237069:AAFw853pE03NFpwMQjOw9VH0DBOqtlYjP8E"  # 🔒 замените на свой
     app = ApplicationBuilder().token(TOKEN).build()
 
     add_conv = ConversationHandler(
@@ -173,7 +208,11 @@ if __name__ == "__main__":
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_name)],
             DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_description)],
             CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_category)],
-            PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_price)]
+            PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_price)],
+            PHOTO: [
+                MessageHandler(filters.PHOTO, add_photo),
+                MessageHandler(filters.TEXT & filters.Regex("^(нет|Нет|no|No)$"), skip_photo)
+            ],
         },
         fallbacks=[]
     )

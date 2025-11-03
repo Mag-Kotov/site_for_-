@@ -37,7 +37,8 @@ function createCards(products) {
         card.innerHTML = `
            <div class="card-inner">
       <div class="card-front">
-       <img src="source/cake.png" alt="Медовик" class="card-img">
+       <img src="${item.Image ? item.Image.replace(/\\/g, "/") : 'source/cake.png'}" alt="${item.Name}" class="card-img">
+
         <h3>${item.Name}</h3>
         <p>${item.Price} ₽</p>
       </div>

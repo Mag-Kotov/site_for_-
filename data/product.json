@@ -20,5 +20,13 @@
         "Price": 2000.0,
         "Id": 2,
         "Image": "data\\images\\2.jpg"
+    },
+    {
+        "Name": "Test2",
+        "Description": "Test",
+        "Category": "Test",
+        "Price": 10000.0,
+        "Id": 3,
+        "Image": "data\\images\\3.jpg"
     }
 ]

@@ -28,5 +28,13 @@
         "Price": 10000.0,
         "Id": 3,
         "Image": "data\\images\\3.jpg"
+    },
+    {
+        "Name": "Andrey",
+        "Description": "Developer the site",
+        "Category": "Developer",
+        "Price": 1e+20,
+        "Id": 4,
+        "Image": "data\\images\\4.jpg"
     }
 ]

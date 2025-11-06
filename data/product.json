@@ -36,5 +36,13 @@
         "Price": 1e+20,
         "Id": 4,
         "Image": "data\\images\\4.jpg"
+    },
+    {
+        "Name": "Денис",
+        "Description": "Денис",
+        "Category": "Человек",
+        "Price": 1000.0,
+        "Id": 5,
+        "Image": "data\\images\\5.jpg"
     }
 ]

@@ -2,6 +2,8 @@ import json
 import os
 import subprocess
 from telegram import Update
+from telegram import ReplyKeyboardMarkup
+
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -196,6 +198,14 @@ async def delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"🗑 Товар ID {id_delete} удалён.")
     else:
         await update.message.reply_text(f"Товар с ID {id_delete} не найден.")
+async def test(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🗑 Товар ID  удалён.")
+    return
+    
+
+# Добавляем обработчик после всех других app.add_handler
+
+
 
 # ------------------- Запуск -------------------
 if __name__ == "__main__":
@@ -222,6 +232,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("list", list_products))
     app.add_handler(CommandHandler("find", find_product))
     app.add_handler(CommandHandler("delete", delete_product))
-
+    app.add_handler(CommandHandler("test", test))
+   
     print("Бот запущен...")
     app.run_polling()

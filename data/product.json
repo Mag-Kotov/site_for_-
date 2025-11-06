@@ -44,5 +44,13 @@
         "Price": 1000.0,
         "Id": 5,
         "Image": "data\\images\\5.jpg"
+    },
+    {
+        "Name": "Max",
+        "Description": "Djsjsbdb",
+        "Category": "Shsjbs",
+        "Price": 1000.0,
+        "Id": 6,
+        "Image": "data\\images\\6.jpg"
     }
 ]
